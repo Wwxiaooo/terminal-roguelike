@@ -1722,6 +1722,12 @@ function recordCodex(category, id) {
   var d = loadCodex();
   if (d[category].indexOf(id) === -1) { d[category].push(id); saveCodex(); }
 }
+// 图鉴: 玩家实际获得装备时才记录构件/词条 (而非生成时; 商人货架/掉落生成不算发现)
+function recordEquipCodex(e) {
+  if (!e) return;
+  if (e.template && EQUIP_TEMPLATES[e.template]) recordCodex('templates', e.template);
+  if (e.affix && AFFIXES.some(function(a) { return a.id === e.affix; })) recordCodex('affixes', e.affix);
+}
 function getArtifactDef(id) {
   for (var i = 0; i < ARTIFACTS.length; i++) { if (ARTIFACTS[i].id === id) return ARTIFACTS[i]; }
   return null;
@@ -2276,6 +2282,7 @@ function applyRunStartTalents() {
       pe.name = (pe.cursed ? '故障·' : '') + (pe.affixData ? pe.affixData.name : '') + RARITIES[pe.rarity].prefix + EQUIP_TEMPLATES[pe.template].name;
     }
     if (G.player.inventory.length < getMaxInventory()) {
+      recordEquipCodex(T.pendingEcho);
       G.player.inventory.push({ equipData: T.pendingEcho });
       addMessage('✦ 快照回滚: ' + T.pendingEcho.name + ' 从上一局保留了下来', 'pickup');
     }
@@ -2284,6 +2291,7 @@ function applyRunStartTalents() {
   }
   if (tl('backpacker') > 0 && !G.player.equips.backpack) {
     var bp = genEquip(1, 'backpack', 'common');
+    recordEquipCodex(bp);
     G.player.equips.backpack = bp;
     addMessage('✦ 外置存储: 自带 ' + bp.name, 'pickup');
   }
@@ -3614,8 +3622,6 @@ function genEquip(floor, forcedSlot, forcedRarity) {
   }
 
   equip.price = price;
-  recordCodex('templates', tKey);
-  if (equip.affix) recordCodex('affixes', equip.affix);
   return equip;
 }
 
@@ -3799,7 +3805,6 @@ function generateMap(routeType) {
   if (bossFloor) {
     // Boss层: 放1只Boss
     var bossType = bigBoss ? stageDef.bigBoss : stageDef.miniBoss;
-    recordCodex('monsters', bossType);
     var bossBase = MONSTERS[bossType];
     var stageMult = 1 + (stage - 1) * 0.4;
     var bossHp = Math.floor(bossBase.hp * stageMult) + Math.floor(diff * 3.5);
@@ -3834,7 +3839,6 @@ function generateMap(routeType) {
       if (G.monsters.some(function(m) { return m.x === mx && m.y === my; })) continue;
 
       var typeName = rndChoice(monsterTypes);
-      recordCodex('monsters', typeName);
       var base = MONSTERS[typeName];
       var hpBonus = Math.floor(diff * 3.5);
       G.monsters.push({
@@ -3862,7 +3866,6 @@ function generateMap(routeType) {
       if (G.monsters.some(function(m) { return m.x === ex && m.y === ey; })) continue;
 
       var eTypeName = rndChoice(monsterTypes);
-      recordCodex('monsters', eTypeName);
       var eBase = MONSTERS[eTypeName];
       var eHp = Math.floor((eBase.hp + Math.floor(diff * 3.5)) * 1.6);
       G.monsters.push({
@@ -4001,6 +4004,12 @@ function updateVisibility() {
   }
   G.visible[py][px] = true;
   G.explored[py][px] = true;
+  // 图鉴: 进入玩家视野的怪物视为“已发现” (真正看到才记录, 而非地图生成即记录)
+  var _ms = G.monsters || [];
+  for (var _i = 0; _i < _ms.length; _i++) {
+    var _m = _ms[_i];
+    if (G.visible[_m.y] && G.visible[_m.y][_m.x]) recordCodex('monsters', _m.type);
+  }
 }
 
 function hasLineOfSight(x0, y0, x1, y1) {
@@ -4587,6 +4596,7 @@ function merchantForgeEquip() {
   G.fragments -= 18;
   var rarity = Math.random() < 0.5 ? 'rare' : 'epic';
   var eq = genEquip(getDifficultyLevel(), null, rarity);
+  recordEquipCodex(eq);
   G.player.inventory.push({ type: 'equip', equipData: eq });
   addMessage('[forge] 熔铸出 [' + eq.name + '] (-18◈)', 'levelup');
   render();
@@ -5161,6 +5171,7 @@ function applyMysteryEvent(type, isBoon) {
     if (Math.random() < 0.4 && G.player.inventory.length < getMaxInventory()) {
       // 掉落装备
       var equip = genEquip(getDifficultyLevel());
+      recordEquipCodex(equip);
       G.player.inventory.push({ equipData: equip });
       console.log('[MYSTERY] treasure equip pushed. inv length:', G.player.inventory.length, 'equip:', equip.name);
       renderInventory(); // 立即刷新背包DOM
@@ -5276,6 +5287,7 @@ var ALTAR_CHOICES = [
       G.items.push({ x: G.player.x, y: G.player.y, type: 'equip', equipData: e });
       addMessage('背包已满！任务产物 ' + e.name + ' 掉在了地上', 'pickup');
     } else {
+      recordEquipCodex(e);
       G.player.inventory.push({ equipData: e });
       addMessage('定时任务执行完成，产出了 ' + e.name + ' Lv.' + e.level + '！', 'pickup');
     }
@@ -5353,6 +5365,7 @@ function closeAltar() {
 }
 
 function onMonsterKilled(monster) {
+  recordCodex('monsters', monster.type); // 图鉴: 击杀兜底 (远程击杀等未入视野场景)
   var mData = MONSTERS[monster.type];
 
   // ===== 成就: 单局终结100进程 =====
@@ -5733,6 +5746,7 @@ function pickupItem(itemIdx) {
       addMessage('背包已满！无法拾取 ' + item.equipData.name, 'system');
       return;
     }
+    recordEquipCodex(item.equipData);
     G.player.inventory.push({ equipData: item.equipData });
     var e = item.equipData;
     var rar = RARITIES[e.rarity];
@@ -5774,6 +5788,7 @@ function pickupItem(itemIdx) {
       addMessage('背包已满！无法解包归档', 'system');
       return;
     }
+    recordEquipCodex(reward);
     G.player.inventory.push({ equipData: reward });
     addMessage('tar -xzf 完成！获得 ' + reward.name + ' Lv.' + reward.level, 'pickup');
     G.items.splice(itemIdx, 1);
@@ -5822,6 +5837,7 @@ function useItem(index) {
   if (inv.equipData) {
     // 装备物品
     var e = inv.equipData;
+    recordEquipCodex(e); // 图鉴: 装备上身兜底记录
     var slot = e.slot;
     var old = G.player.equips[slot];
     G.player.equips[slot] = e;
@@ -6206,6 +6222,7 @@ function rerollAffix(index) {
   if ((G.fragments || 0) < cost) { addMessage('数据碎片不足 (需 ' + cost + '◈)', 'system'); return; }
   G.fragments -= cost;
   rerollEquipStats(e);
+  recordEquipCodex(e); // 图鉴: 重铸出的新词条也计入收集
   addMessage('[reforge] 重铸了 [' + e.name + '] 的词条 (-' + cost + '◈)', 'levelup');
   render();
   saveGame();
@@ -6297,6 +6314,7 @@ function buyItem(index) {
   }
   G.player.gold -= shopPrice(item);
   if (item.equipData) {
+    recordEquipCodex(item.equipData);
     G.player.inventory.push({ equipData: item.equipData });
     addMessage('你购买了 ' + item.equipData.name + ' Lv.' + item.equipData.level, 'pickup');
   } else {
