@@ -59,10 +59,6 @@ body {
 .top-bar .floor-info .fi-title { font-weight: bold; letter-spacing: 1px; color: #6aaa6a; flex: 0 0 auto; }
 .top-bar .floor-info .fi-sep { color: #2a4a2a; flex: 0 0 auto; }
 .top-bar .floor-info.alert .fi-text { color: #ff4444; }
-.top-bar .controls-hint {
-  color: #333;
-  font-size: 11px;
-}
 
 /* ===== 游戏主区域 ===== */
 .game-main {
@@ -149,12 +145,15 @@ body {
 /* ===== 右侧面板 ===== */
 .side-panel {
   flex: 0 0 290px;
+  width: 290px;
   min-width: 290px;
   max-width: 290px;
+  min-height: 0;
   border-left: 1px solid #1a2a1a;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 8px 12px;
   font-size: 12px;
   color: #00ff41;
@@ -168,19 +167,13 @@ body {
 }
 /* 背包区域：标题固定，格子滚动 */
 #invSection {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  flex-shrink: 1;
+  flex-shrink: 0;
 }
 #invSection h3 {
   flex-shrink: 0;
 }
 .inv-scroll {
-  flex: 1;
-  min-height: 0;
+  max-height: 260px;
   overflow-y: auto;
 }
 .inv-scroll::-webkit-scrollbar { width: 4px; }
@@ -194,21 +187,6 @@ body {
   margin-bottom: 5px;
   text-transform: uppercase;
   letter-spacing: 1px;
-}
-.stats-toggle {
-  cursor: pointer;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  width: 100%;
-}
-.stats-toggle:hover { color: #00ff41; }
-.stats-toggle .toggle-arrow {
-  display: inline-block;
-  width: 10px;
-  font-size: 9px;
-  transition: transform 0.15s;
 }
 .stat-pts-badge {
   margin-left: auto;
@@ -502,11 +480,27 @@ body {
   flex-shrink: 0;
   border-top: 1px solid #1a2a1a;
 }
+.log-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 200px;
+}
+.controls-hint-bar {
+  flex-shrink: 0;
+  color: #3f6f3f;
+  font-size: 11px;
+  padding: 2px 14px 3px;
+  border-top: 1px solid #1a2a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* ===== 消息日志 ===== */
 .message-log {
   font-size: 12px;
-  height: 200px;
   flex: 1;
   overflow-y: auto;
   padding: 4px 14px;
@@ -987,16 +981,6 @@ body {
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 
 /* 天赋系统 */
-.hub-group {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  white-space: nowrap;
-  user-select: none;
-}
 .hub-btn {
   cursor: pointer;
   color: #00ff41;
@@ -1005,6 +989,26 @@ body {
 }
 .hub-btn:hover { color: #66ff99; text-shadow: 0 0 6px #00ff41; }
 .hub-btn b { color: #ffdd44; font-weight: bold; }
+.top-hub {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+  flex-shrink: 0;
+}
+.hub-link {
+  cursor: pointer;
+  color: #00ff41;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  transition: color .12s, text-shadow .12s;
+}
+.hub-link .px-icon { width: 12px; height: 12px; }
+.hub-link:hover { color: #66ff99; text-shadow: 0 0 6px #00ff41; }
+.hub-link b { color: #ffdd44; font-weight: bold; }
 .px-icon {
   width: 15px; height: 15px;
   vertical-align: middle;
@@ -1072,26 +1076,95 @@ body {
   line-height: 1.7;
 }
 
-/* 响应式 */
-@media (max-width: 700px) {
-  .side-panel { flex: 0 0 210px; min-width: 210px; max-width: 210px; padding: 6px 8px; }
-  .target-panel { flex: 0 0 210px; min-width: 210px; max-width: 210px; padding: 4px 8px; }
-  .inv-slot { height: 42px; }
-  .inv-slot .slot-name { display: none; }
+/* ===== 分区折叠（每个标题可点击展开/收起） ===== */
+.section-head {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  padding: 5px 0;
+  color: #6aaa6a;
+  font-size: 13px;
+  font-weight: normal;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #1a2a1a;
+  flex-shrink: 0;
 }
+.section-head:hover { color: #00ff41; }
+.toggle-arrow {
+  display: inline-block;
+  font-size: 9px;
+  color: #4a8a4a;
+  transition: transform 0.15s;
+}
+.panel-section.collapsed .toggle-arrow { transform: rotate(-90deg); }
+.section-body { padding-top: 5px; }
+.panel-section.collapsed .section-body { display: none; }
+/* 进程状态：收起时仍保留核心属性，仅隐藏详细展开项 */
+#statsSection.collapsed .section-body { display: block; }
+.stat-pts-badge { color: #ffdd00; font-size: 10px; margin-left: auto; }
+#invSection .section-body { display: flex; flex-direction: column; }
+
+/* ===== 关卡开场标题（方案A 横幅） ===== */
+#stageTitleOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+#stageTitleOverlay.show { display: flex; }
+
+/* 方案A：全屏淡入淡出横幅 */
+.stage-banner {
+  text-align: center;
+  color: #00ff41;
+  text-shadow: 0 0 12px rgba(0,255,65,0.7), 0 0 30px rgba(0,255,65,0.35);
+  animation: stageBannerFade 2.4s ease forwards;
+}
+.stage-banner .sb-stage {
+  font-size: 15px;
+  letter-spacing: 7px;
+  color: #6aaa6a;
+  margin-bottom: 12px;
+  text-shadow: none;
+}
+.stage-banner .sb-name {
+  font-size: 52px;
+  font-weight: bold;
+  letter-spacing: 5px;
+}
+.stage-banner .sb-sub {
+  margin-top: 14px;
+  font-size: 13px;
+  color: #4a8a4a;
+  letter-spacing: 3px;
+  text-shadow: none;
+}
+@keyframes stageBannerFade {
+  0%   { opacity: 0; transform: scale(0.85); }
+  15%  { opacity: 1; transform: scale(1); }
+  72%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.06); }
+}
+
+
 </style>
 </head>
 <body>
 <div class="game-container" id="terminal" tabindex="0">
 
   <div class="top-bar">
-    <span class="floor-info" id="floorInfo"><span class="fi-logo" id="fiLogo"></span><span class="fi-title">TERMINAL ROGUELIKE</span><span class="fi-sep">|</span><span class="fi-text" id="fiText">关卡1 /var/log 日志墓场 — 1/10层</span></span>
-    <span class="hub-group">
-      <span class="hub-btn" onclick="openTalentPanel()"><svg class="px-icon"><use href="#ic-star"/></svg>天赋 <b id="talentPtsTop">0</b></span>
-      <span class="hub-btn" onclick="openAchievementsPanel()"><svg class="px-icon"><use href="#ic-trophy"/></svg>成就</span>
-      <span class="hub-btn" onclick="openCodexPanel()"><svg class="px-icon"><use href="#ic-book"/></svg>图鉴</span>
+    <span class="floor-info" id="floorInfo"><span class="fi-logo" id="fiLogo"></span><span class="fi-title">TERMINAL ROGUELIKE</span><span class="fi-sep">|</span><span class="fi-text" id="fiText">关卡1 日志墓场 — 1/10层</span></span>
+    <span class="top-hub">
+      <span class="hub-link" onclick="openTalentPanel()"><svg class="px-icon"><use href="#ic-star"/></svg>天赋 <b id="talentPtsTop">0</b></span>
+      <span class="hub-link" onclick="openAchievementsPanel()"><svg class="px-icon"><use href="#ic-trophy"/></svg>成就</span>
+      <span class="hub-link" onclick="openCodexPanel()"><svg class="px-icon"><use href="#ic-book"/></svg>图鉴</span>
     </span>
-    <span class="controls-hint">[WASD]移动 [空格]等待 [F]魔法飞弹 [ESC]主菜单 [Ctrl]隐藏</span>
   </div>
 
   <div class="game-main">
@@ -1099,18 +1172,39 @@ body {
       <div class="map-grid" id="mapGrid"></div>
     </div>
     <div class="side-panel" id="sidePanel">
-      <div class="panel-section" id="statsSection"></div>
-      <div class="panel-section" id="shopSection" style="display:none;"></div>
-      <div class="panel-section" id="altarSection" style="display:none;"></div>
-      <div class="panel-section" id="equipSection"></div>
-      <div class="panel-section" id="invSection"></div>
+      <div class="panel-section collapsed" id="statsSection">
+        <h3 class="section-head" onclick="toggleSection('stats')"><span class="toggle-arrow">▼</span>进程状态<span id="statsBadge" class="stat-pts-badge"></span></h3>
+        <div class="section-body" id="statsBody"></div>
+      </div>
+      <div class="panel-section" id="shopSection" style="display:none;">
+        <h3 class="section-head" onclick="toggleSection('shop')"><span class="toggle-arrow">▼</span>软件源</h3>
+        <div class="section-body" id="shopBody"></div>
+      </div>
+      <div class="panel-section" id="altarSection" style="display:none;">
+        <h3 class="section-head" onclick="toggleSection('altar')"><span class="toggle-arrow">▼</span>crontab 定时任务</h3>
+        <div class="section-body" id="altarBody"></div>
+      </div>
+      <div class="panel-section" id="equipSection">
+        <h3 class="section-head" onclick="toggleSection('equip')"><span class="toggle-arrow">▼</span>装备</h3>
+        <div class="section-body" id="equipBody"></div>
+      </div>
+      <div class="panel-section" id="invSection">
+        <h3 class="section-head" onclick="toggleSection('inv')"><span class="toggle-arrow">▼</span>背包 <span id="invCountBadge"></span></h3>
+        <div class="section-body" id="invBody"></div>
+      </div>
     </div>
   </div>
 
   <div class="bottom-bar">
-    <div class="message-log" id="messageLog"></div>
+    <div class="log-wrap">
+      <div class="message-log" id="messageLog"></div>
+      <div class="controls-hint-bar">[WASD]移动 [空格]等待 [F]魔法飞弹 [ESC]主菜单 [Ctrl]隐藏</div>
+    </div>
     <div class="target-panel" id="targetSection"></div>
   </div>
+
+  <!-- 关卡开场标题覆盖层（方案A/B 共用） -->
+  <div id="stageTitleOverlay"></div>
 
   <!-- 伪装终端 (Ctrl 呼出/隐藏) -->
   <div class="boss-term" id="bossTerm">
@@ -1377,6 +1471,16 @@ var PIXEL_ICONS = {
     ".X...X.",
     "X.....X"
   ],
+  panel: [
+    "########",
+    "#......#",
+    "#.####.#",
+    "#.#..#.#",
+    "#.#..#.#",
+    "#.####.#",
+    "#......#",
+    "########"
+  ],
   swords: [
     "#......#",
     ".#....#.",
@@ -1460,9 +1564,43 @@ function buildPixelIcons() {
     if (PIXEL_ICONS[RED_ICONS[i]]) makeSymbol('ic-' + RED_ICONS[i] + '-red', PIXEL_ICONS[RED_ICONS[i]], RED);
   }
   svg.appendChild(defs);
+
+  // 为地图实体精灵(SPRITE_DEFS)也创建 <symbol>, 避免每帧内联大量重复SVG导致渲染混乱
+  var spriteDefs = document.createElementNS(ns, 'defs');
+  spriteDefs.setAttribute('id', 'sprite-defs');
+  function makeSpriteSymbol(id, def) {
+    if (!def || !def.rows) return; // 跳过非精灵定义(如嵌套的pal对象)
+    var h = def.rows.length, w = def.rows[0].length;
+    var sym = document.createElementNS(ns, 'symbol');
+    sym.setAttribute('id', 'sprite-' + id);
+    sym.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    for (var y = 0; y < h; y++) {
+      var row = def.rows[y], x = 0;
+      while (x < w) {
+        var ch = row.charAt(x);
+        if (ch !== '.' && def.pal[ch]) {
+          var x2 = x;
+          while (x2 < w && row.charAt(x2) === ch) x2++;
+          var r = document.createElementNS(ns, 'rect');
+          r.setAttribute('x', x); r.setAttribute('y', y);
+          r.setAttribute('width', x2 - x); r.setAttribute('height', 1);
+          r.setAttribute('fill', def.pal[ch]);
+          sym.appendChild(r);
+          x = x2;
+        } else { x++; }
+      }
+    }
+    spriteDefs.appendChild(sym);
+  }
+  for (var sid in SPRITE_DEFS) makeSpriteSymbol(sid, SPRITE_DEFS[sid]);
+  svg.appendChild(spriteDefs);
   document.body.appendChild(svg);
+  
+  // 标记: sprite symbols 已就绪
+  window._spriteSymbolsReady = true;
+  // 清除旧的内联SVG缓存, 让后续 spriteHTML() 调用全部走 <use> 引用
+  _spriteCache = {};
 }
-buildPixelIcons();
 
 // ============================
 // 配置常量
@@ -1489,11 +1627,11 @@ const TILE = { WALL: 0, FLOOR: 1, STAIRS: 2, ALTAR: 3 };
 
 // ===== 关卡定义 =====
 const STAGES = [
-  { name: '/var/log 日志墓场', floors: 10, monsters: ['slime','bat','goblin','skeleton'], miniBoss: 'dragon',        bigBoss: 'dragon2' },
-  { name: '/tmp 临时区',       floors: 15, monsters: ['skeleton','goblin','orc','bat'],    miniBoss: 'shadow_knight', bigBoss: 'demon_lord' },
-  { name: '/proc 熔核区',      floors: 20, monsters: ['orc','skeleton','goblin','bat'],    miniBoss: 'flame_guard',   bigBoss: 'lava_titan' },
-  { name: '/etc 冻结配置区',   floors: 25, monsters: ['orc','skeleton','bat','goblin'],    miniBoss: 'frost_giant',   bigBoss: 'ice_queen' },
-  { name: '/root 混沌核心',    floors: 30, monsters: ['orc','skeleton','goblin','bat'],    miniBoss: 'void_herald',   bigBoss: 'chaos_lord' },
+  { name: '日志墓场',   floors: 10, monsters: ['slime','bat','goblin','skeleton'], miniBoss: 'dragon',        bigBoss: 'dragon2' },
+  { name: '临时区',     floors: 15, monsters: ['skeleton','goblin','orc','bat'],    miniBoss: 'shadow_knight', bigBoss: 'demon_lord' },
+  { name: '熔核区',     floors: 20, monsters: ['orc','skeleton','goblin','bat'],    miniBoss: 'flame_guard',   bigBoss: 'lava_titan' },
+  { name: '冻结配置区', floors: 25, monsters: ['orc','skeleton','bat','goblin'],    miniBoss: 'frost_giant',   bigBoss: 'ice_queen' },
+  { name: '混沌核心',   floors: 30, monsters: ['orc','skeleton','goblin','bat'],    miniBoss: 'void_herald',   bigBoss: 'chaos_lord' },
 ];
 
 function getStageMaxFloor(stage) { return STAGES[stage - 1].floors; }
@@ -1540,8 +1678,10 @@ const MONSTERS = {
 // ===== 全局怪物难度系数 (调高血量与攻击力, 增加挑战) =====
 // 觉得还是太简单就调大这两个值; clone 为动态赋值, 跳过
 const MONSTER_HP_MULT = 1.35;
-const MONSTER_ATK_MULT = 1.25;
-const BOSS_HP_MULT = 1.3;  // Boss 额外血量倍率（让 Boss 更耐打，避免被秒）
+const MONSTER_ATK_MULT = 1.5;
+const BOSS_HP_MULT = 1.5;  // Boss 额外血量倍率（让 Boss 更耐打，避免被秒）
+const GEAR_STAT_SCALE = 0.8; // 装备攻击/防御成长整体缩放(拉平"有1-2件就无敌"的战力悬崖)
+const DEF_REDUCE_K = 100; // 减伤率衰减常数K: 伤害 = atk*(1 - def/(def+K)), 防御永远按比例减伤, 永不免伤(修复"堆防御打1血")
 for (var _mk in MONSTERS) {
   if (_mk === 'clone') continue;
   if (MONSTERS[_mk].hp != null) MONSTERS[_mk].hp = Math.round(MONSTERS[_mk].hp * MONSTER_HP_MULT);
@@ -1637,11 +1777,64 @@ const CURSE_TYPES = [
   { id:'sluggish',    name:'高延迟',   desc:'闪避降为0' },
   { id:'fragile',     name:'单点故障', desc:'受到伤害+25%' },
   { id:'greedy',      name:'抽成劫持', desc:'BTC获取减半' },
-  { id:'blind',       name:'丢包',     desc:'视野范围-2' },
+  { id:'blind',       name:'视野丢失', desc:'视野范围-3' },
   { id:'mana_drain',  name:'QoS限速',  desc:'带宽不自然回复' },
   { id:'clumsy',      name:'端口封禁', desc:'无法使用魔法飞弹' },
   { id:'plague',      name:'蠕虫感染', desc:'中毒时伤害翻倍' },
 ];
+
+// ===== 词条(附加属性)数值区间: 按稀有度配置, 各档互不重叠 =====
+// 保证: 普通 <= 超频 <= 服务器级 <= 数据中心级 <= 超算级 (杜绝低稀有数值反超高稀有)
+const AFFIX_VAL_RANGE = {
+  common:    [0.40, 0.62],
+  uncommon:  [0.62, 0.92],
+  rare:      [0.92, 1.30],
+  epic:      [1.30, 1.80],
+  legendary: [1.80, 2.40],
+};
+
+// ===== 特殊词条(命名词条)威力倍率: 随稀有度放大 =====
+const AFFIX_POWER = {
+  common: 1.0, uncommon: 1.15, rare: 1.3, epic: 1.5, legendary: 1.8
+};
+
+// 词条数量按稀有度配置:
+// 普通固定1条; 超频1~2条; 服务器级/数据中心级 2~3条(3条概率低于2条); 传说固定3条
+// 数值递增由 AFFIX_VAL_RANGE 各档互不重叠区间保证(高稀有数值不低于低稀有)
+function affixCountForRarity(rarity) {
+  if (rarity === 'common') return 1;
+  if (rarity === 'uncommon') return 1 + Math.floor(Math.random() * 2); // 1~2
+  if (rarity === 'legendary') return 3;
+  // rare / epic: 2~3, 2条75% / 3条25% (3条概率低于2条)
+  return Math.random() < 0.75 ? 2 : 3;
+}
+
+// 根据缩放后的效果生成动态描述
+function affixDesc(eff) {
+  if (eff.atkMult != null) return '攻击+' + Math.round(eff.atkMult * 100) + '%';
+  if (eff.defMult != null) return '防御+' + Math.round(eff.defMult * 100) + '%';
+  if (eff.dodge != null) return '闪避+' + eff.dodge + '%';
+  if (eff.critRate != null) return '暴击率+' + eff.critRate + '%';
+  if (eff.critDmg != null) return '暴击伤害+' + eff.critDmg + '%';
+  if (eff.lifesteal != null) return '吸血+' + eff.lifesteal + '%';
+  if (eff.luck != null) return '掉落率+' + eff.luck + '%';
+  if (eff.maxMp != null) return '带宽上限+' + eff.maxMp;
+  if (eff.maxHp != null) return '内存上限+' + eff.maxHp;
+  if (eff.atkSpd != null) return '攻击速度+' + eff.atkSpd + '%';
+  if (eff.thorns != null) return '反伤+' + eff.thorns;
+  return '';
+}
+
+// 按稀有度缩放特殊词条的数值(返回带动态desc的副本, 不改原AFFIXES定义)
+function scaleAffix(affix, factor) {
+  var eff = {};
+  for (var k in affix.effect) {
+    var v = affix.effect[k];
+    if (k === 'atkMult' || k === 'defMult') eff[k] = Math.round(v * factor * 100) / 100;
+    else eff[k] = Math.max(1, Math.round(v * factor));
+  }
+  return { id: affix.id, name: affix.name, desc: affixDesc(eff), effect: eff };
+}
 
 // ===== 成就系统 =====
 const ACH_KEY = 'terminal_roguelike_achievements_v1';
@@ -3178,6 +3371,15 @@ var _spriteCache = {};
 function spriteHTML(type, size) {
   var key = type + '_' + size;
   if (_spriteCache[key]) return _spriteCache[key];
+  
+  // 优先使用预定义的 <symbol>+<use> (避免内联大量重复SVG导致渲染混乱)
+  if (window._spriteSymbolsReady) {
+    var useSvg = '<svg xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" width="' + size + '" height="' + size + '"><use href="#sprite-' + type + '"/></svg>';
+    _spriteCache[key] = useSvg;
+    return useSvg;
+  }
+  
+  // fallback: 内联SVG (仅当 symbols 未就绪时)
   var def = SPRITE_DEFS[type];
   if (!def) return '';
   var rows = def.rows;
@@ -3210,7 +3412,7 @@ function newGameState() {
       x:0, y:0,
       hp:50, maxHp:50,
       mp:20, maxMp:20,
-      atk:10, def:5,
+      atk:14, def:8,
       level:1, exp:0, expNext:50,
       gold:0,
       str:5, dex:5, int:5, spd:5,
@@ -3247,7 +3449,6 @@ function newGameState() {
     damageTaken: 0,
     runStartTime: 0,
     eventPopupActive: false,
-    statsExpanded: false,
     fragments: 0,
     currentRoute: null,
   };
@@ -3533,7 +3734,7 @@ function rollRarity() {
   var scale = 1;
   if (diff <= 3) scale = 0.5;
   else if (diff <= 5) scale = 0.75;
-  var rareW = 10 * scale, epicW = 4 * scale, legW = 1 * scale;
+  var rareW = 7 * scale, epicW = 1.5 * scale, legW = 0.3 * scale;
   if (r < 60) return 'common';
   if (r < 85) return 'uncommon';
   if (r < 85 + rareW) return 'rare';
@@ -3572,8 +3773,8 @@ function genEquip(floor, forcedSlot, forcedRarity) {
   var level = Math.max(1, floor + rnd(-1, 1));
 
   var atkBonus = 0, defBonus = 0;
-  if (tDef.baseAtk > 0) atkBonus = Math.max(1, Math.floor(tDef.baseAtk * rar.mult + level * 0.5));
-  if (tDef.baseDef > 0) defBonus = Math.max(1, Math.floor(tDef.baseDef * rar.mult + level * 0.5));
+  if (tDef.baseAtk > 0) atkBonus = Math.max(1, Math.floor((tDef.baseAtk * rar.mult + level * 0.5) * GEAR_STAT_SCALE));
+  if (tDef.baseDef > 0) defBonus = Math.max(1, Math.floor((tDef.baseDef * rar.mult + level * 0.5) * GEAR_STAT_SCALE));
 
   var name = rar.prefix + tDef.name;
   var price = Math.floor((atkBonus + defBonus) * 8 * rar.mult + level * 3);
@@ -3602,30 +3803,30 @@ function genEquip(floor, forcedSlot, forcedRarity) {
     return equip;
   }
 
-  // ===== 滚动附加属性 (稀有度越高属性越多) =====
-  var numExtras = 0;
-  if (rarity === 'common') numExtras = Math.random() < 0.3 ? 1 : 0;
-  else if (rarity === 'uncommon') numExtras = 1;
-  else if (rarity === 'rare') numExtras = 2;
-  else if (rarity === 'epic') numExtras = 3;
-  else if (rarity === 'legendary') numExtras = 4;
+  // ===== 滚动附加属性 (词条数量按稀有度配置) =====
+  // 普通固定1条; 传说固定3条; 其余(超频/服务器级/数据中心级)随机1-3条
+  var numExtras = affixCountForRarity(rarity);
 
+  // 该稀有度的数值区间(各档互不重叠), 保证高稀有数值不低于低稀有
+  var vr = AFFIX_VAL_RANGE[rarity];
   var availableAttrs = EXTRA_ATTRS.slice();
   for (var i = 0; i < numExtras && availableAttrs.length > 0; i++) {
     var idx = Math.floor(Math.random() * availableAttrs.length);
     var attr = availableAttrs.splice(idx, 1)[0];
-    var val = Math.max(1, Math.floor(attr.max * rar.mult * (0.4 + Math.random() * 0.6)));
+    var factor = vr[0] + Math.random() * (vr[1] - vr[0]);
+    var val = Math.max(1, Math.floor(attr.max * factor));
     equip[attr.key] = (equip[attr.key] || 0) + val;
     price += val * 5;
   }
 
-  // ===== 特殊词条 (稀有及以上才有) =====
+  // ===== 特殊词条 (稀有及以上才有, 数值随稀有度放大) =====
   if (rarity === 'rare' || rarity === 'epic' || rarity === 'legendary') {
     if (Math.random() < (rarity === 'legendary' ? 1.0 : rarity === 'epic' ? 0.7 : 0.4)) {
       var affix = rndChoice(AFFIXES);
-      equip.affix = affix.id;
-      equip.affixData = affix;
-      name = affix.name + rar.prefix + tDef.name;
+      var scaledAffix = scaleAffix(affix, AFFIX_POWER[rarity]);
+      equip.affix = scaledAffix.id;
+      equip.affixData = scaledAffix;
+      name = scaledAffix.name + rar.prefix + tDef.name;
       equip.name = name;
       price += Math.floor(rar.mult * 30);
     }
@@ -3636,13 +3837,32 @@ function genEquip(floor, forcedSlot, forcedRarity) {
   if (Math.random() < curseChance) {
     equip.cursed = true;
     equip.curseType = rndChoice(CURSE_TYPES).id;
-    // 诅咒装备属性更强: 额外+50%攻击和防御
+    // 诅咒装备属性更强: 基础攻防额外+50%
     if (atkBonus > 0) { equip.atk = Math.floor(atkBonus * 1.5); price += equip.atk * 5; }
     if (defBonus > 0) { equip.def = Math.floor(defBonus * 1.5); price += equip.def * 5; }
-    // 诅咒装备必定有1个额外属性
-    if (numExtras === 0 && availableAttrs.length > 0) {
+    // 诅咒装备所有附加属性强化: 从"同级普通区间上限(+1)"起步, 严格高于同级普通且不越档
+    var _boostedAny = false;
+    for (var _ai = 0; _ai < EXTRA_ATTRS.length; _ai++) {
+      var _attr = EXTRA_ATTRS[_ai];
+      var _k = _attr.key;
+      if (equip[_k] != null && equip[_k] > 0) {
+        var _normalUpper = Math.floor(_attr.max * AFFIX_VAL_RANGE[rarity][1]);  // 同级普通可能达到的最大值
+        var _boostMax = Math.floor(_attr.max * (AFFIX_VAL_RANGE[rarity][1] + 0.25));
+        if (_boostMax < _normalUpper + 1) _boostMax = _normalUpper + 1;
+        var _newVal = _normalUpper + 1 + Math.floor(Math.random() * (_boostMax - _normalUpper));
+        price += (_newVal - equip[_k]) * 5;  // 价格按增量调整
+        equip[_k] = _newVal;
+        _boostedAny = true;
+      }
+    }
+    // 若完全没有附加属性, 强制补1条(同样强化)
+    if (!_boostedAny && availableAttrs.length > 0) {
       var cAttr = availableAttrs[Math.floor(Math.random() * availableAttrs.length)];
-      equip[cAttr.key] = (equip[cAttr.key] || 0) + Math.max(1, Math.floor(cAttr.max * 0.8));
+      var cUpper = Math.floor(cAttr.max * AFFIX_VAL_RANGE[rarity][1]);
+      var cMax = Math.floor(cAttr.max * (AFFIX_VAL_RANGE[rarity][1] + 0.25));
+      if (cMax < cUpper + 1) cMax = cUpper + 1;
+      equip[cAttr.key] = cUpper + 1 + Math.floor(Math.random() * (cMax - cUpper));
+      price += equip[cAttr.key] * 5;
     }
     var curseData = CURSE_TYPES.filter(function(c) { return c.id === equip.curseType; })[0];
     name = '故障·' + name;
@@ -3848,23 +4068,27 @@ function generateMap(routeType) {
       gold: bossBase.gold + Math.floor(diff * 3),
     });
   } else {
-    // 普通层: 放多只普通怪物
+    // 普通层: 放多只普通怪物, 每房最多1只 + 最小间距, 彻底避免聚堆
     var monsterTypes = getMonsterTypesForFloor(stage, floor);
-    var numMonsters = Math.min(rooms.length - 1, Math.max(2, Math.round((9 + diff) * rt.monsterMul)));
+    var numMonsters = Math.min(rooms.length - 2, Math.max(3, Math.round((5 + diff * 0.5) * rt.monsterMul)));
 
     var shuffledRooms = [];
     for (var i = 1; i < rooms.length; i++) shuffledRooms.push(rooms[i]);
     shuffledRooms.sort(function() { return Math.random() - 0.5; });
 
-    for (var i = 0; i < numMonsters && shuffledRooms.length > 0; i++) {
-      var room = shuffledRooms[i % shuffledRooms.length];
-      if (i >= shuffledRooms.length && Math.random() < 0.4) continue;
-      if (!room) continue;
+    var occupiedRooms = {};
+    var placedCount = 0;
+    for (var i = 0; i < shuffledRooms.length && placedCount < numMonsters; i++) {
+      var room = shuffledRooms[i];
+      // 开局缓冲: 离起点过近的房间(曼哈顿<4)不放怪, 避免一开局被围
+      if (Math.abs(room.cx - G.player.x) + Math.abs(room.cy - G.player.y) < 4) continue;
       var mx = rnd(room.x, room.x + room.w - 1);
       var my = rnd(room.y, room.y + room.h - 1);
       if (mx === G.player.x && my === G.player.y) continue;
       if (G.map[my][mx] === TILE.STAIRS) continue;
       if (G.monsters.some(function(m) { return m.x === mx && m.y === my; })) continue;
+      // 最小间距: 与已有怪物曼哈顿距离<2则跳过, 防止走廊口相邻房间贴脸聚堆
+      if (G.monsters.some(function(m) { return Math.abs(m.x - mx) + Math.abs(m.y - my) < 2; })) continue;
 
       var typeName = rndChoice(monsterTypes);
       var base = MONSTERS[typeName];
@@ -3875,23 +4099,27 @@ function generateMap(routeType) {
         name: base.name,
         hp: Math.round(base.hp * (1 + (stage - 1) * 0.15)) + hpBonus,
         maxHp: Math.round(base.hp * (1 + (stage - 1) * 0.15)) + hpBonus,
-        atk: Math.round(base.atk * (1 + (stage - 1) * 0.15)) + Math.floor(diff * 2.2),
+        atk: Math.round(base.atk * (1 + (stage - 1) * 0.25)) + Math.floor(diff * 2.8),
         def: base.def + Math.floor(diff * 0.8),
         exp: Math.floor((base.exp + Math.floor(diff * 0.4)) * rt.expGoldMul),
         gold: Math.floor((base.gold + Math.floor(diff * 0.5)) * rt.expGoldMul),
       });
+      occupiedRooms[room.cx + ',' + room.cy] = true;
+      placedCount++;
     }
 
-    // ===== 精英怪: 每层1~2只, 属性x1.6, 必掉高稀有度装备 =====
+    // ===== 精英怪: 每层1~2只, 属性x1.6, 必掉高稀有度装备, 不挤入已放怪房间 =====
     var numElites = Math.min(3, Math.round((Math.random() < 0.35 ? 2 : 1) * rt.eliteMul));
     for (var e = 0; e < numElites && shuffledRooms.length > 0; e++) {
       var eroom = shuffledRooms[(e + 3) % shuffledRooms.length];
       if (!eroom) continue;
+      if (occupiedRooms[eroom.cx + ',' + eroom.cy]) continue;  // 不挤进已被普通怪占据的房间
       var ex = rnd(eroom.x, eroom.x + eroom.w - 1);
       var ey = rnd(eroom.y, eroom.y + eroom.h - 1);
       if (G.map[ey][ex] !== TILE.FLOOR) continue;
       if (ex === G.player.x && ey === G.player.y) continue;
       if (G.monsters.some(function(m) { return m.x === ex && m.y === ey; })) continue;
+      if (G.monsters.some(function(m) { return Math.abs(m.x - ex) + Math.abs(m.y - ey) < 2; })) continue;  // 最小间距
 
       var eTypeName = rndChoice(monsterTypes);
       var eBase = MONSTERS[eTypeName];
@@ -3901,7 +4129,7 @@ function generateMap(routeType) {
         type: eTypeName,
         name: '★' + eBase.name,
         hp: eHp, maxHp: eHp,
-        atk: Math.floor((eBase.atk + Math.floor(diff * 2.2)) * 1.6),
+        atk: Math.floor((eBase.atk + Math.floor(diff * 2.8)) * 1.6),
         def: Math.floor((eBase.def + Math.floor(diff * 0.8)) * 1.6),
         exp: Math.floor((eBase.exp + Math.floor(diff * 0.4)) * 1.8 * rt.expGoldMul),
         gold: Math.floor((eBase.gold + Math.floor(diff * 0.5)) * 1.8 * rt.expGoldMul),
@@ -4018,7 +4246,7 @@ function updateVisibility() {
     }
   }
   var px = G.player.x, py = G.player.y;
-  var vision = VISION - (hasCurseType('blind') ? 2 : 0) + tl('eagle_eye') + (hasArtifactPassive('insight') ? 2 : 0); // 天赋: 全链路追踪 / 神器: 洞察
+  var vision = VISION - (hasCurseType('blind') ? 3 : 0) + tl('eagle_eye') + (hasArtifactPassive('insight') ? 2 : 0); // 天赋: 全链路追踪 / 神器: 洞察
   for (var y = 0; y < MAP_H; y++) {
     for (var x = 0; x < MAP_W; x++) {
       var d = dist(px, py, x, y);
@@ -4080,7 +4308,8 @@ function renderAltar() {
     G.map[G.player.y] && G.map[G.player.y][G.player.x] === TILE.ALTAR;
   if (!onAltar) {
     altarSec.style.display = 'none';
-    altarSec.innerHTML = '';
+    var altarBody = document.getElementById('altarBody');
+    if (altarBody) altarBody.innerHTML = '';
   }
 }
 
@@ -4478,11 +4707,12 @@ function renderStats() {
   var ls = getTotalLifesteal();
   var totalSpd = getTotalSpeed();
   var totalAtkSpd = getTotalAtkSpeed();
-  var expanded = G.statsExpanded;
+  var statsSec = document.getElementById('statsSection');
+  var expanded = !(statsSec && statsSec.classList.contains('collapsed'));
 
   var html = '';
-  var arrow = expanded ? '\u25BC' : '\u25B6';
-  html += '<h3 class="stats-toggle" onclick="toggleStats()"><span class="toggle-arrow">' + arrow + '</span>进程状态' + (p.attrPoints > 0 ? '<span class="stat-pts-badge">▲ 可升级 +' + p.attrPoints + '点</span>' : '') + '</h3>';
+  var badge = document.getElementById('statsBadge');
+  if (badge) badge.innerHTML = p.attrPoints > 0 ? '▲ 可升级 +' + p.attrPoints + '点' : '';
 
   // ===== 始终显示的核心属性 =====
   html += '<div class="stat-row" onmouseenter="showStatTip(event,\'level\')" onmouseleave="hideStatTip()"><span class="stat-label">管理员</span><span class="stat-value">Lv.' + p.level + '</span></div>';
@@ -4554,12 +4784,13 @@ function renderStats() {
     }
   }
 
-  document.getElementById('statsSection').innerHTML = html;
+  document.getElementById('statsBody').innerHTML = html;
 }
 
-function toggleStats() {
-  G.statsExpanded = !G.statsExpanded;
-  renderStats();
+function toggleSection(key) {
+  var sec = document.getElementById(key + 'Section');
+  if (sec) sec.classList.toggle('collapsed');
+  if (key === 'stats') renderStats();
 }
 
 function allocAttr(attr) {
@@ -4577,19 +4808,20 @@ function allocAttr(attr) {
 
 function renderShop() {
   var shopSection = document.getElementById('shopSection');
+  var shopBody = document.getElementById('shopBody');
   if (!G.merchant) {
     shopSection.style.display = 'none';
-    shopSection.innerHTML = '';
+    shopBody.innerHTML = '';
     return;
   }
   var d = dist(G.player.x, G.player.y, G.merchant.x, G.merchant.y);
   if (d > 1.5) {
     shopSection.style.display = 'none';
-    shopSection.innerHTML = '';
+    shopBody.innerHTML = '';
     return;
   }
   shopSection.style.display = 'block';
-  var html = '<h3>软件源 — 点击安装 (BTC 结算)</h3>';
+  var html = '';
   if (G.merchant.items.length === 0) {
     html += '<div style="color:#333;font-size:11px;">商品已售罄</div>';
   } else {
@@ -4622,7 +4854,7 @@ function renderShop() {
   html += '<div style="font-size:11px;color:#44e0ff;margin:6px 0 4px;">◈ 碎片交易所 (持有 ' + (G.fragments || 0) + '◈)</div>';
   html += '<div class="shop-svc" onclick="merchantBuyFrag()">用 25 BTC 兑换 1 数据碎片</div>';
   html += '<div class="shop-svc" onclick="merchantForgeEquip()">消耗 18◈ 熔铸一件随机稀有+装备</div>';
-  shopSection.innerHTML = html;
+  shopBody.innerHTML = html;
 }
 
 function merchantBuyFrag() {
@@ -4654,20 +4886,26 @@ function equipStatStr(e) {
     var cap = BACKPACK_CAPACITY[e.rarity] || BASE_INVENTORY;
     return '容量' + cap + '格';
   }
-  var parts = [];
-  if (e.atk > 0) parts.push('+' + e.atk + '攻');
-  if (e.def > 0) parts.push('+' + e.def + '防');
-  if (e.critRate) parts.push('暴击' + e.critRate + '%');
-  if (e.critDmg) parts.push('暴伤' + e.critDmg + '%');
-  if (e.dodge) parts.push('闪避' + e.dodge + '%');
-  if (e.lifesteal) parts.push('吸血' + e.lifesteal + '%');
-  if (e.hpRegen) parts.push('回HP' + e.hpRegen + '/t');
-  if (e.mpRegen) parts.push('回MP' + e.mpRegen + '/t');
-  if (e.maxHp) parts.push('HP上限+' + e.maxHp);
-  if (e.maxMp) parts.push('MP上限+' + e.maxMp);
-  if (e.thorns) parts.push('反伤' + e.thorns);
-  if (e.spd) parts.push('移动速度+' + e.spd);
-  if (e.atkSpd) parts.push('攻击速度+' + e.atkSpd);
+  var base = [];
+  if (e.atk > 0) base.push('+' + e.atk + '攻');
+  if (e.def > 0) base.push('+' + e.def + '防');
+  var extras = [];
+  if (e.critRate) extras.push('暴击' + e.critRate + '%');
+  if (e.critDmg) extras.push('暴伤' + e.critDmg + '%');
+  if (e.dodge) extras.push('闪避' + e.dodge + '%');
+  if (e.lifesteal) extras.push('吸血' + e.lifesteal + '%');
+  if (e.hpRegen) extras.push('回HP' + e.hpRegen + '/t');
+  if (e.mpRegen) extras.push('回MP' + e.mpRegen + '/t');
+  if (e.maxHp) extras.push('HP上限+' + e.maxHp);
+  if (e.maxMp) extras.push('MP上限+' + e.maxMp);
+  if (e.thorns) extras.push('反伤' + e.thorns);
+  if (e.spd) extras.push('移动速度+' + e.spd);
+  if (e.atkSpd) extras.push('攻击速度+' + e.atkSpd);
+  var parts = base.slice();
+  if (extras.length > 0) {
+    if (base.length > 0) parts.push('·');
+    parts = parts.concat(extras);
+  }
   return parts.join(' ');
 }
 
@@ -4678,30 +4916,40 @@ function equipDetailHtml(e) {
     html += '<div style="color:#ffd700;font-weight:bold;">✦ 神器 · 独一无二</div>';
     if (artDef) html += '<div style="color:#ffd700;">✦ 神器被动: ' + artDef.passiveDesc + '</div>';
   }
-  if (e.atk > 0) html += '<div>攻击 +' + e.atk + '</div>';
-  if (e.def > 0) html += '<div>防御 +' + e.def + '</div>';
-  if (e.critRate) html += '<div style="color:#ffdd00;">暴击率 +' + e.critRate + '%</div>';
-  if (e.critDmg) html += '<div style="color:#ffdd00;">暴击伤害 +' + e.critDmg + '%</div>';
-  if (e.dodge) html += '<div style="color:#66dd44;">闪避 +' + e.dodge + '%</div>';
-  if (e.lifesteal) html += '<div style="color:#ff6688;">吸血 +' + e.lifesteal + '%</div>';
-  if (e.hpRegen) html += '<div style="color:#00aa41;">内存回复 +' + e.hpRegen + '/回合</div>';
-  if (e.mpRegen) html += '<div style="color:#4488ff;">带宽回复 +' + e.mpRegen + '/回合</div>';
-  if (e.maxHp) html += '<div style="color:#00aa41;">内存上限 +' + e.maxHp + '</div>';
-  if (e.maxMp) html += '<div style="color:#4488ff;">带宽上限 +' + e.maxMp + '</div>';
-  if (e.thorns) html += '<div style="color:#ff6644;">反伤 +' + e.thorns + '</div>';
-  if (e.spd) html += '<div style="color:#ddaa00;">移动速度 +' + e.spd + '</div>';
-  if (e.atkSpd) html += '<div style="color:#ff8844;">攻击速度 +' + e.atkSpd + '</div>';
-  if (e.luck) html += '<div style="color:#ffaa44;">掉落率 +' + e.luck + '%</div>';
+  // ===== 基础属性 (模板自带, 非词条) =====
+  if (e.atk > 0 || e.def > 0) {
+    html += '<div style="color:#777;font-size:10px;margin-top:2px;border-top:1px solid #333;padding-top:2px;">基础属性</div>';
+    if (e.atk > 0) html += '<div>攻击 +' + e.atk + '</div>';
+    if (e.def > 0) html += '<div>防御 +' + e.def + '</div>';
+  }
+  // ===== 附加词条 (随机属性, 数量按稀有度) =====
+  var extras = [];
+  if (e.critRate) extras.push('<div style="color:#ffdd00;">暴击率 +' + e.critRate + '%</div>');
+  if (e.critDmg) extras.push('<div style="color:#ffdd00;">暴击伤害 +' + e.critDmg + '%</div>');
+  if (e.dodge) extras.push('<div style="color:#66dd44;">闪避 +' + e.dodge + '%</div>');
+  if (e.lifesteal) extras.push('<div style="color:#ff6688;">吸血 +' + e.lifesteal + '%</div>');
+  if (e.hpRegen) extras.push('<div style="color:#00aa41;">内存回复 +' + e.hpRegen + '/回合</div>');
+  if (e.mpRegen) extras.push('<div style="color:#4488ff;">带宽回复 +' + e.mpRegen + '/回合</div>');
+  if (e.maxHp) extras.push('<div style="color:#00aa41;">内存上限 +' + e.maxHp + '</div>');
+  if (e.maxMp) extras.push('<div style="color:#4488ff;">带宽上限 +' + e.maxMp + '</div>');
+  if (e.thorns) extras.push('<div style="color:#ff6644;">反伤 +' + e.thorns + '</div>');
+  if (e.spd) extras.push('<div style="color:#ddaa00;">移动速度 +' + e.spd + '</div>');
+  if (e.atkSpd) extras.push('<div style="color:#ff8844;">攻击速度 +' + e.atkSpd + '</div>');
+  if (e.luck) extras.push('<div style="color:#ffaa44;">掉落率 +' + e.luck + '%</div>');
+  if (extras.length > 0) {
+    html += '<div style="color:#aaa;font-size:10px;margin-top:3px;border-top:1px solid #444;padding-top:2px;">附加词条 (' + extras.length + '条)</div>';
+    html += extras.join('');
+  }
   if (e.slot === 'backpack') {
     var cap = BACKPACK_CAPACITY[e.rarity] || BASE_INVENTORY;
     html += '<div style="color:#88aaff;">背包容量: ' + cap + ' 格</div>';
   }
-  if (e.affixData) html += '<div style="color:#cc88ff;">词条: ' + e.affixData.name + ' (' + e.affixData.desc + ')</div>';
+  if (e.affixData) html += '<div style="color:#cc88ff;margin-top:2px;">特殊词条: ' + e.affixData.name + ' (' + e.affixData.desc + ')</div>';
   if (e.cursed) {
     var curseData = CURSE_TYPES.filter(function(c) { return c.id === e.curseType; })[0];
     var curseName = curseData ? curseData.name : '故障';
     var curseDesc = curseData ? curseData.desc : '';
-    html += '<div style="color:#ff4444;">★ 故障装备 (无法卸下)</div>';
+    html += '<div style="color:#ff4444;">★ 故障装备 (不可卸下/替换)</div>';
     html += '<div style="color:#ff6644;">故障词条: ' + curseName + ' — ' + curseDesc + '</div>';
   }
   return html;
@@ -4709,7 +4957,7 @@ function equipDetailHtml(e) {
 
 function renderEquip() {
   var p = G.player;
-  var html = '<h3>装备</h3>';
+  var html = '';
   for (var i = 0; i < EQUIP_SLOTS.length; i++) {
     var slot = EQUIP_SLOTS[i];
     var e = p.equips[slot.key];
@@ -4731,7 +4979,7 @@ function renderEquip() {
       html += '<div class="equip-row">' + slot.label + ': <span style="color:#333;">无</span></div>';
     }
   }
-  document.getElementById('equipSection').innerHTML = html;
+  document.getElementById('equipBody').innerHTML = html;
 }
 
 function renderInventory() {
@@ -4743,8 +4991,9 @@ function renderInventory() {
   var countColor = overCapacity ? '#ff4444' : '';
   var countStr = '<span' + (countColor ? ' style="color:' + countColor + ';"' : '') + '>' + p.inventory.length + '/' + maxInv + '</span>';
   if (overCapacity) countStr += ' <span style="color:#ff4444;font-size:10px;">⚠超载</span>';
-  var html = '<h3>背包 (' + countStr + ')' + bpStr + '</h3>';
-  html += '<div class="inv-scroll"><div class="inv-grid">';
+  var invBadge = document.getElementById('invCountBadge');
+  if (invBadge) invBadge.innerHTML = '(' + countStr + ')' + bpStr;
+  var html = '<div class="inv-scroll"><div class="inv-grid">';
   for (var i = 0; i < p.inventory.length; i++) {
     var inv = p.inventory[i];
     if (inv.equipData) {
@@ -4772,7 +5021,7 @@ function renderInventory() {
     html += '<div class="inv-slot empty"></div>';
   }
   html += '</div></div>';
-  document.getElementById('invSection').innerHTML = html;
+  document.getElementById('invBody').innerHTML = html;
 }
 
 function findVisibleMonsters() {
@@ -5354,7 +5603,7 @@ var ALTAR_CHOICES = [
 
 function showAltarChoices() {
   var altarSection = document.getElementById('altarSection');
-  var html = '<h3 style="color:#cc88ff;">crontab — 配置定时任务</h3>';
+  var html = '';
   for (var i = 0; i < ALTAR_CHOICES.length; i++) {
     var c = ALTAR_CHOICES[i];
     var costStr = '';
@@ -5371,7 +5620,7 @@ function showAltarChoices() {
   html += '<div class="shop-item" style="border-color:#333;" onclick="closeAltar()">';
   html += '<span style="color:#555;">取消，不配置任务</span>';
   html += '</div>';
-  altarSection.innerHTML = html;
+  document.getElementById('altarBody').innerHTML = html;
   altarSection.style.display = 'block';
   addMessage('发现一个空闲的 crontab 槽位！配置一个定时任务。', 'info');
 }
@@ -5482,12 +5731,12 @@ function onMonsterKilled(monster) {
     var mainRarity;
     var roll = Math.random();
     if (isBigBoss) {
-      if (roll < 0.25) mainRarity = 'legendary';
-      else if (roll < 0.95) mainRarity = 'epic';
+      if (roll < 0.12) mainRarity = 'legendary';
+      else if (roll < 0.88) mainRarity = 'epic';
       else mainRarity = 'rare';
     } else {
-      if (roll < 0.15) mainRarity = 'epic';
-      else if (roll < 0.65) mainRarity = 'rare';
+      if (roll < 0.08) mainRarity = 'epic';
+      else if (roll < 0.72) mainRarity = 'rare';
       else mainRarity = 'uncommon';
     }
     var bossSlot = Math.random() < 0.5 ? 'weapon' : 'armor';
@@ -5638,7 +5887,8 @@ function attack(attacker, defender, isPlayerAttacking) {
     }
   }
 
-  var dmg = Math.max(1, atkTotal - defTotal + rnd(-2, 2));
+  // 减伤率公式: 伤害 = atk*(1 - def/(def+K)), 防御永远按比例减伤, 不会完全免伤 (修复"堆防御打1血"问题)
+  var dmg = Math.max(1, Math.round(atkTotal * (1 - defTotal / (defTotal + DEF_REDUCE_K))) + rnd(-1, 1));
   // 单点故障: 受到伤害+25%
   if (hasCurseType('fragile')) dmg = Math.floor(dmg * 1.25);
   // 神器: 熔断器·Breaker - 内存低于30%时受伤降低30%
@@ -5886,6 +6136,11 @@ function useItem(index) {
     recordEquipCodex(e); // 图鉴: 装备上身兜底记录
     var slot = e.slot;
     var old = G.player.equips[slot];
+    // 故障装备锁定槽位: 既不可卸下, 也不可被别的装备替换
+    if (old && old.cursed) {
+      addMessage('被感染的装备无法替换！该槽位已被故障装备锁定，需要 cleanup.job 清理任务处理', 'combat-enemy');
+      return;
+    }
     G.player.equips[slot] = e;
     G.player.inventory.splice(index, 1);
     if (old) {
@@ -6104,6 +6359,10 @@ function equipCompareHtml(e, currentEquip) {
     if (newAffix) diffHtml += '<div style="color:#cc88ff;">获得词条[' + newAffix + ']</div>';
   }
   // 诅咒对比
+  if (currentEquip && currentEquip.cursed) {
+    anyDiff = true;
+    diffHtml += '<div style="color:#ff4444;">⚠ 当前槽位已被故障装备锁定，无法替换！</div>';
+  }
   if (e.cursed && !currentEquip.cursed) {
     anyDiff = true;
     var curseData = CURSE_TYPES.filter(function(c) { return c.id === e.curseType; })[0];
@@ -6139,7 +6398,11 @@ function showItemMenu(event, index) {
     var rar = RARITIES[e.rarity];
     html += '<div class="menu-header" style="color:' + rar.color + ';">' + e.name + ' Lv.' + e.level + (e.cursed ? ' ★' : '') + '</div>';
     html += '<div class="menu-divider"></div>';
-    html += '<div class="menu-option" onclick="useItem(' + index + '); closeItemMenu();">装备</div>';
+    if (G.player.equips[e.slot] && G.player.equips[e.slot].cursed) {
+      html += '<div class="menu-option" style="color:#ff4444;cursor:not-allowed;">装备 (槽位被故障装备锁定)</div>';
+    } else {
+      html += '<div class="menu-option" onclick="useItem(' + index + '); closeItemMenu();">装备</div>';
+    }
     html += '<div class="menu-option" onclick="salvageItem(' + index + '); closeItemMenu();">分解 (' + getSalvageValue(e) + '◈)</div>';
     if (!e.artifact) {
       html += '<div class="menu-option" onclick="rerollAffix(' + index + '); closeItemMenu();">重铸词缀 (' + getRerollCost(e) + '◈)</div>';
@@ -6230,27 +6493,38 @@ function rerollEquipStats(e) {
   var level = e.level;
   var rar = RARITIES[e.rarity];
   var tDef = EQUIP_TEMPLATES[e.template];
-  var numExtras = 0;
-  if (e.rarity === 'common') numExtras = Math.random() < 0.3 ? 1 : 0;
-  else if (e.rarity === 'uncommon') numExtras = 1;
-  else if (e.rarity === 'rare') numExtras = 2;
-  else if (e.rarity === 'epic') numExtras = 3;
-  else if (e.rarity === 'legendary') numExtras = 4;
+  var numExtras = affixCountForRarity(e.rarity);
   var price = Math.floor((e.atk + e.def) * 8 * rar.mult + level * 3);
+  var vr = AFFIX_VAL_RANGE[e.rarity];
   var availableAttrs = EXTRA_ATTRS.slice();
   for (var i = 0; i < numExtras && availableAttrs.length > 0; i++) {
     var idx = Math.floor(Math.random() * availableAttrs.length);
     var attr = availableAttrs.splice(idx, 1)[0];
-    var val = Math.max(1, Math.floor(attr.max * rar.mult * (0.4 + Math.random() * 0.6)));
+    var factor = vr[0] + Math.random() * (vr[1] - vr[0]);
+    var val = Math.max(1, Math.floor(attr.max * factor));
     e[attr.key] = (e[attr.key] || 0) + val;
     price += val * 5;
   }
   if (e.rarity === 'rare' || e.rarity === 'epic' || e.rarity === 'legendary') {
     if (Math.random() < (e.rarity === 'legendary' ? 1.0 : e.rarity === 'epic' ? 0.7 : 0.4)) {
       var affix = rndChoice(AFFIXES);
-      e.affix = affix.id;
-      e.affixData = affix;
+      var scaled = scaleAffix(affix, AFFIX_POWER[e.rarity]);
+      e.affix = scaled.id;
+      e.affixData = scaled;
       price += Math.floor(rar.mult * 30);
+    }
+  }
+  // 诅咒装备: 重铸后附加属性同样强化, 保持同级更高(从同级普通上限+1起步, 不越档)
+  if (e.cursed) {
+    for (var ci = 0; ci < EXTRA_ATTRS.length; ci++) {
+      var _a = EXTRA_ATTRS[ci];
+      var ck = _a.key;
+      if (e[ck] != null && e[ck] > 0) {
+        var _nu = Math.floor(_a.max * AFFIX_VAL_RANGE[e.rarity][1]);
+        var _bm = Math.floor(_a.max * (AFFIX_VAL_RANGE[e.rarity][1] + 0.25));
+        if (_bm < _nu + 1) _bm = _nu + 1;
+        e[ck] = _nu + 1 + Math.floor(Math.random() * (_bm - _nu));
+      }
     }
   }
   var name = (e.affixData ? e.affixData.name : '') + rar.prefix + tDef.name;
@@ -6309,7 +6583,7 @@ function unequip(slotKey) {
   var e = G.player.equips[slotKey];
   if (!e) return;
   if (e.cursed) {
-    addMessage('被感染的装备无法手动卸载！需要 cleanup.job 清理任务处理', 'combat-enemy');
+    addMessage('被感染的装备无法卸下或替换！需要 cleanup.job 清理任务处理', 'combat-enemy');
     return;
   }
   // 卸下背包时容量会降回BASE_INVENTORY，需要预留空间
@@ -6413,6 +6687,7 @@ function nextFloor() {
     var newStageDef = STAGES[G.stage - 1];
     addMessage('===== 进入关卡 ' + G.stage + '：' + newStageDef.name + ' =====', 'boss');
     addMessage('共 ' + newStageDef.floors + ' 层，每5层有特权进程，最终层有驻留Boss！', 'info');
+    showStageTitle(G.stage, newStageDef.name);
   } else {
     G.floor++;
     var msg = '你下到了 ' + STAGES[G.stage - 1].name + ' 第 ' + G.floor + ' 层...';
@@ -7496,16 +7771,38 @@ function showVictory() {
   document.getElementById('victoryModal').classList.add('active');
 }
 
+// ============================
+// 关卡开场标题（方案A 横幅）
+// ============================
+var _stageTitleTimers = [];
+function showStageTitle(stage, name) {
+  _stageTitleTimers.forEach(function (t) { clearTimeout(t); });
+  _stageTitleTimers = [];
+  var ov = document.getElementById('stageTitleOverlay');
+  ov.innerHTML = '';
+  ov.className = '';
+  // 方案A：全屏淡入淡出横幅
+  ov.classList.add('show');
+  var b = document.createElement('div');
+  b.className = 'stage-banner';
+  b.innerHTML = '<div class="sb-stage">STAGE ' + stage + ' / 关卡 ' + stage + '</div>' +
+                '<div class="sb-name">' + name + '</div>' +
+                '<div class="sb-sub">— 第 ' + stage + ' 关 —</div>';
+  ov.appendChild(b);
+  _stageTitleTimers.push(setTimeout(function () { ov.classList.remove('show'); ov.innerHTML = ''; }, 2400));
+}
+
 function startNewRun() {
   clearSave();
   G = newGameState();
   G.runStartTime = Date.now();
   generateMap();
   applyRunStartTalents();
-  addMessage('===== 关卡1：/var/log 日志墓场 =====', 'info');
+  addMessage('===== 关卡' + G.stage + '：' + STAGES[G.stage - 1].name + ' =====', 'info');
   addMessage('共10层，每5层有特权进程，第10层有驻留Boss！', 'info');
   addMessage('小心前方的异常进程！走到进程旁边即可 kill', 'info');
   addMessage('提示: 按 ESC 可返回主菜单存档/开新游戏', 'system');
+  showStageTitle(G.stage, STAGES[G.stage - 1].name);
   calcCellSize();
   render();
   saveGame();
@@ -7713,6 +8010,8 @@ function init() {
   });
 }
 
+// 必须在所有顶层常量(SPRITE_DEFS / PIXEL_ICONS 等)声明完成后调用, 否则访问 SPRITE_DEFS 会触发 TDZ 白屏
+buildPixelIcons();
 init();
 </script>
 </body>
