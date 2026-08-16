@@ -7496,11 +7496,12 @@ function enterGame() {
 }
 
 function menuResetGame() {
-  if (!window.confirm('确定要重置游戏吗？\n\n将清除:\n- 当前存档 (关卡/层数/等级/装备/背包)\n- 全部天赋点与天赋等级\n\n此操作不可恢复!')) return;
+  if (!window.confirm('确定要重置游戏吗？\n\n将清除:\n- 当前存档 (关卡/层数/等级/装备/背包)\n- 全部天赋点与天赋等级\n- 全部图鉴收集进度\n\n此操作不可恢复!')) return;
   if (!window.confirm('再次确认: 真的要清空所有进度重新开始吗?')) return;
   try {
     localStorage.removeItem(SAVE_KEY);
     localStorage.removeItem(TALENT_KEY);
+    localStorage.removeItem(CODEX_KEY);
   } catch(e) {}
   // 重置内存中的天赋状态
   T.points = 0;
@@ -7508,10 +7509,11 @@ function menuResetGame() {
   T.milestones = {};
   T.firstClear = false;
   T.pendingEcho = null;
+  _codexData = null;
   saveTalents();
   startNewRun();
   updateMainMenu();
-  addMessage('⚠ 游戏已重置: 存档与天赋全部清除', 'system');
+  addMessage('⚠ 游戏已重置: 存档、天赋与图鉴全部清除', 'system');
   enterGame();
 }
 
