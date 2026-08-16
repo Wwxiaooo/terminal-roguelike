@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>绿色像素图标预览</title>
+<style>
+  body { background:#0a0e0a; color:#00ff41; font-family:'Courier New',monospace; padding:24px; }
+  h1 { color:#66ff99; }
+  .grid { display:flex; flex-wrap:wrap; gap:18px; margin-top:20px; }
+  .cell { background:#0d140d; border:1px solid #1a5a2a; border-radius:6px; padding:14px; text-align:center; width:120px; }
+  .px-icon { width:40px; height:40px; shape-rendering:crispEdges; fill:#00ff41; }
+  .label { margin-top:10px; font-size:12px; color:#6aaa6a; }
+</style>
+</head>
+<body>
+<h1>绿色像素图标 (终端绿 #00ff41)</h1>
+<div class="grid" id="grid"></div>
+<script>
+var PIXEL_ICONS = {
+  play:["...#.....","...##....","...###...","...####..","...#####.","...####..","...###...","...##....","...#....."],
+  bolt:["....##...","...##....","...###...","..####...",".#####...","....##...","...##....","..##.....",".##......"],
+  disk:["#########","#.......#","#.#####.#","#.#####.#","#########","#########","#.......#","#.......#","#########"],
+  trophy:["..#####..",".#.....#.",".#.....#.",".#.###.#.",".#.###.#.","..#####..","...###...","...###...","..#####.."],
+  book:["XXXXXXX","XX...XX","XX...XX","XX...XX","XX...XX","XX...XX","XXXXXXX"],
+  warn:["....#....","...###...","..#####..",".#######.","#########","....#....","....#....","....#....","...###..."],
+  route:["....#....","....#....","....#....","...#.#...","..#.#.#..",".#.#.#.#.","#.#.#.#.#"],
+  shield:["#.......#","##.....##","###...###","####.####","#########","#########",".#######.","..#####..","...###..."],
+  skull:[".#######.","#########","#.#...#.#","#.#...#.#","#########","#.#.#.#.#","#.#.#.#.#",".#######.","..#...#.."],
+  star:["X.....X",".X...X.","..X.X..","...X...","..X.X..",".X...X.","X.....X"],
+  swords:["#......#",".#....#.","..#..#..","...##...","..#..#..",".#....#.","#......#"],
+  core:["...###...","..#####..",".#######.",".#######.","#########",".#######.",".#######.","..#####..","...###..."]
+};
+var ns="http://www.w3.org/2000/svg";
+var svg=document.createElementNS(ns,"svg");svg.setAttribute("width","0");svg.setAttribute("height","0");svg.style.position="absolute";
+var defs=document.createElementNS(ns,"defs");
+for(var id in PIXEL_ICONS){var map=PIXEL_ICONS[id],h=map.length,w=map[0].length;
+  var sym=document.createElementNS(ns,"symbol");sym.setAttribute("id","ic-"+id);sym.setAttribute("viewBox","0 0 "+w+" "+h);
+  for(var y=0;y<h;y++){var row=map[y],x=0;while(x<w){var ch=row.charAt(x);
+    if(ch==='#'||ch==='X'){var x2=x;while(x2<w&&(row.charAt(x2)==='#'||row.charAt(x2)==='X'))x2++;
+      var r=document.createElementNS(ns,"rect");r.setAttribute("x",x);r.setAttribute("y",y);r.setAttribute("width",x2-x);r.setAttribute("height",1);r.setAttribute("fill","#00ff41");sym.appendChild(r);x=x2;}else{x++;}}}
+  defs.appendChild(sym);}
+svg.appendChild(defs);document.body.appendChild(svg);
+var grid=document.getElementById("grid");
+for(var id in PIXEL_ICONS){
+  var cell=document.createElement("div");cell.className="cell";
+  cell.innerHTML='<svg class="px-icon"><use href="#ic-'+id+'"/></svg><div class="label">'+id+'</div>';
+  grid.appendChild(cell);
+}
+</script>
+</body>
+</html>
