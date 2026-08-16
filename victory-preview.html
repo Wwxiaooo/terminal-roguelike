@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>通关动画预览</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body { background: #0a0a0a; font-family: 'Consolas', 'JetBrains Mono', 'Courier New', monospace; }
+
+/* ===== 通关动画: rm -rf 清理 (与 index.html 完全一致) ===== */
+#victoryAnimOverlay {
+  display: none;
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #050a05;
+  z-index: 750;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+#victoryAnimOverlay.active { display: flex; }
+#vaScreen {
+  width: 620px;
+  max-width: 92vw;
+  height: 320px;
+  max-height: 55vh;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #4a8a4a;
+  padding: 10px 14px;
+  border: 1px solid #1a3a1a;
+  background: #080d08;
+}
+#vaScreen::-webkit-scrollbar { width: 0; display: none; }
+.va-cmd { color: #00ff41; margin-bottom: 4px; }
+.va-prompt { color: #56d364; }
+.va-log { color: #3a6a3a; font-size: 12px; }
+.va-ok { color: #00ff41; font-weight: bold; margin-top: 6px; text-shadow: 0 0 6px rgba(0,255,65,0.5); }
+#vaProgress {
+  width: 620px;
+  max-width: 92vw;
+  height: 16px;
+  border: 1px solid #2a5a2a;
+  background: #080d08;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.va-bar-fill {
+  display: block;
+  height: 100%;
+  background: #00ff41;
+  box-shadow: 0 0 8px rgba(0,255,65,0.5);
+  transition: width 0.05s linear;
+}
+#vaBanner {
+  display: none;
+  margin-top: 24px;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.va-big {
+  font-size: 26px;
+  letter-spacing: 5px;
+  color: #00ff41;
+  text-shadow: 0 0 12px rgba(0,255,65,0.7), 0 0 28px rgba(0,255,65,0.3);
+  animation: vaGlow 1.2s ease-in-out infinite alternate;
+}
+.va-sub {
+  font-size: 12px;
+  color: #56d364;
+  letter-spacing: 2px;
+}
+@keyframes vaGlow {
+  from { text-shadow: 0 0 8px rgba(0,255,65,0.5); }
+  to { text-shadow: 0 0 18px rgba(0,255,65,0.95), 0 0 36px rgba(0,255,65,0.4); }
+}
+.va-skip {
+  position: absolute;
+  bottom: 18px;
+  font-size: 11px;
+  color: #2a4a2a;
+  letter-spacing: 1px;
+}
+
+/* ===== 预览页背景 ===== */
+.preview-bg {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+.preview-title {
+  color: #00ff41;
+  font-size: 14px;
+  text-shadow: 0 0 6px rgba(0,255,65,0.4);
+}
+.preview-btn {
+  padding: 12px 32px;
+  border: 1px solid #2a5a2a;
+  border-radius: 4px;
+  background: #0d1a0d;
+  color: #00ff41;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  text-shadow: 0 0 4px rgba(0,255,65,0.3);
+}
+.preview-btn:hover { background: #152815; }
+</style>
+</head>
+<body>
+
+<div class="preview-bg">
+  <div class="preview-title">通关动画预览 — 击败最终Boss后播放</div>
+  <button class="preview-btn" onclick="playVictoryAnimation()">▶ 播放通关动画</button>
+</div>
+
+<!-- 通关动画覆盖层 (与 index.html 完全一致) -->
+<div id="victoryAnimOverlay">
+  <div id="vaScreen"></div>
+  <div id="vaProgress"></div>
+  <div id="vaBanner">
+    <div class="va-big">R E C O V E R Y &nbsp; &#10022; &nbsp; C O M P L E T E</div>
+    <div class="va-sub">混沌核心已格式化 · 文件系统完整性 100%</div>
+  </div>
+  <div class="va-skip">[ 点击跳过 ]</div>
+</div>
+
+<script>
+function playVictoryAnimation() {
+  var overlay = document.getElementById('victoryAnimOverlay');
+  var screen  = document.getElementById('vaScreen');
+  var banner  = document.getElementById('vaBanner');
+  var progBar = document.getElementById('vaProgress');
+  overlay.classList.add('active');
+  screen.innerHTML = '';
+  banner.style.display = 'none';
+  progBar.innerHTML = '';
+  var skipped = false;
+  overlay.onclick = function() { skipped = true; };
+
+  var logs = [
+    '/var/log/syslog', '/var/log/auth.log', '/var/log/kern.log',
+    '/var/log/daemon.log', '/var/log/cron.log', '/var/log/mail.log',
+    '/var/log/nginx/access.log', '/var/log/nginx/error.log',
+    '/var/log/mysql/slow.log', '/var/log/redis/redis.log',
+    '/var/log/docker/app-01.log', '/var/log/docker/app-02.log',
+    '/var/log/audit/audit.log', '/var/log/journal/system.journal',
+    '/var/log/btmp', '/var/log/wtmp', '/var/log/faillog',
+    '/var/log/firewalld', '/var/log/snmpd.log', '/var/log/zabbix_agentd.log',
+    '/var/log/grafana/grafana.log', '/var/log/prometheus/prom.log',
+    '/var/log/mongodb/mongod.log', '/var/log/es/elasticsearch.log',
+    '/var/log/kibana/kibana.log', '/var/log/supervisor/supervisord.log',
+    '/var/log/haproxy.log', '/var/log/php-fpm.log', '/var/log/postgres/pg.log',
+    '/var/log/cloud-init.log', '/var/log/dpkg.log', '/var/log/alternatives.log',
+    '/var/log/sysstat/sa10', '/var/log/letsencrypt/le.log', '/var/log/boot.log',
+    '/var/log/chaos_core.dump', '/var/log/corruption.bin'
+  ];
+
+  // --- 阶段1: 打字机输出 rm -rf 命令 ---
+  var cmdText = 'rm -rf /var/log/*';
+  var cmdLine = document.createElement('div');
+  cmdLine.className = 'va-cmd';
+  cmdLine.innerHTML = '<span class="va-prompt">root@prod-core:~#</span> <span id="vaTyped"></span>';
+  screen.appendChild(cmdLine);
+  var typed = document.getElementById('vaTyped');
+  var ci = 0;
+  var typeTimer = setInterval(function() {
+    if (skipped) { clearInterval(typeTimer); finishVA(); return; }
+    if (ci >= cmdText.length) { clearInterval(typeTimer); startDeletion(); return; }
+    typed.textContent += cmdText[ci++];
+  }, 45);
+
+  // --- 阶段2: 逐行删除日志 ---
+  function startDeletion() {
+    screen.appendChild(document.createElement('br'));
+    var idx = 0, total = logs.length;
+    var delTimer = setInterval(function() {
+      if (skipped) { clearInterval(delTimer); finishVA(); return; }
+      if (idx >= total) {
+        clearInterval(delTimer);
+        var m1 = document.createElement('div');
+        m1.className = 'va-ok';
+        m1.textContent = '== ALL CORRUPTED LOGS PURGED ==';
+        screen.appendChild(m1);
+        screen.scrollTop = screen.scrollHeight;
+        setTimeout(function() {
+          if (skipped) return;
+          var m2 = document.createElement('div');
+          m2.className = 'va-ok';
+          m2.textContent = '== FILE SYSTEM RESTORED ==';
+          screen.appendChild(m2);
+          screen.scrollTop = screen.scrollHeight;
+        }, 300);
+        setTimeout(function() {
+          if (skipped) return;
+          banner.style.display = 'flex';
+        }, 700);
+        setTimeout(function() { finishVA(); }, 2700);
+        return;
+      }
+      var ln = document.createElement('div');
+      ln.className = 'va-log';
+      ln.textContent = "removed '" + logs[idx] + "'";
+      screen.appendChild(ln);
+      screen.scrollTop = screen.scrollHeight;
+      var pct = Math.floor(((idx + 1) / total) * 100);
+      progBar.innerHTML = '<span class="va-bar-fill" style="width:' + pct + '%"></span>';
+      idx++;
+    }, 50);
+  }
+
+  function finishVA() {
+    overlay.classList.remove('active');
+    overlay.onclick = null;
+    // 预览模式: 不弹结算框
+  }
+}
+</script>
+</body>
+</html>
