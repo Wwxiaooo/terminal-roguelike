@@ -287,6 +287,47 @@ body {
 .shop-item.rarity-epic { border-color: #cc66ff; }
 .shop-item.rarity-legendary { border-color: #ffaa00; box-shadow: 0 0 4px rgba(255,170,0,0.2); }
 .shop-divider { height: 1px; background: #1a3a1a; margin: 8px 0 2px; }
+
+/* crontab 定时任务选项（ altar-choice ） */
+.altar-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 5px 7px;
+  margin: 2px 0;
+  border: 1px solid #6a4a8a;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: #0a0f0a;
+}
+.altar-choice:hover { background: #1a1528; transform: translateX(2px); }
+.altar-choice .ac-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.altar-choice .ac-en {
+  font-family: 'Consolas','Courier New',monospace;
+  font-size: 11px;
+  color: #8899aa;
+  letter-spacing: 0.3px;
+}
+.altar-choice .ac-cn {
+  font-size: 12px;
+  color: #cc88ff;
+  font-weight: bold;
+}
+.altar-choice .ac-effect {
+  flex-shrink: 0;
+  align-self: center;
+  font-size: 10px;
+  color: #aa9966;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
 .shop-svc {
   border: 1px dashed #1a5a6a;
   border-radius: 4px;
@@ -1679,7 +1720,7 @@ const MONSTERS = {
 // 觉得还是太简单就调大这两个值; clone 为动态赋值, 跳过
 const MONSTER_HP_MULT = 1.35;
 const MONSTER_ATK_MULT = 1.5;
-const BOSS_HP_MULT = 1.5;  // Boss 额外血量倍率（让 Boss 更耐打，避免被秒）
+const BOSS_HP_MULT = 2.3;  // Boss 额外血量倍率（让 Boss 更耐打，避免被秒）
 const GEAR_STAT_SCALE = 0.8; // 装备攻击/防御成长整体缩放(拉平"有1-2件就无敌"的战力悬崖)
 const DEF_REDUCE_K = 100; // 减伤率衰减常数K: 伤害 = atk*(1 - def/(def+K)), 防御永远按比例减伤, 永不免伤(修复"堆防御打1血")
 for (var _mk in MONSTERS) {
@@ -4055,17 +4096,18 @@ function generateMap(routeType) {
     var bossType = bigBoss ? stageDef.bigBoss : stageDef.miniBoss;
     var bossBase = MONSTERS[bossType];
     var stageMult = 1 + (stage - 1) * 0.65;
-    var bossHp = Math.floor(bossBase.hp * stageMult * BOSS_HP_MULT) + Math.floor(diff * 4.5);
-    var bossAtk = bossBase.atk + Math.floor(diff * 2.0);
-    var bossDef = Math.round((bossBase.def + Math.floor(diff * 1.2)) * (1 + (stage - 1) * 0.35));
+    var bossHp = Math.floor(bossBase.hp * stageMult * BOSS_HP_MULT) + Math.floor(diff * 6);
+    var bossAtk = bossBase.atk + Math.floor(diff * 3.5) + Math.floor((stage - 1) * 5);
+    var bossDef = Math.round((bossBase.def + Math.floor(diff * 2.0)) * (1 + (stage - 1) * 0.6));
     G.monsters.push({
       x: rooms[0].x + rooms[0].w - 3, y: rooms[0].cy,
       type: bossType,
       name: bossBase.name,
       hp: bossHp, maxHp: bossHp,
       atk: bossAtk, def: bossDef,
-      exp: bossBase.exp + Math.floor(diff * 2),
-      gold: bossBase.gold + Math.floor(diff * 3),
+      exp: bossBase.exp + Math.floor(diff * 4),
+      gold: bossBase.gold + Math.floor(diff * 6),
+      bigBoss: !!bigBoss,
     });
   } else {
     // 普通层: 放多只普通怪物, 每房最多1只 + 最小间距, 彻底避免聚堆
@@ -4402,7 +4444,11 @@ function renderMap() {
           if (G.monsters[i].x === x && G.monsters[i].y === y) { monster = G.monsters[i]; break; }
         }
         if (monster && visible) {
-          content = spriteHTML(MONSTERS[monster.type].sprite, spriteSize);
+          var mSize = spriteSize;
+          if (MONSTERS[monster.type].boss) {
+            mSize = monster.bigBoss ? Math.floor(spriteSize * 2.2) : Math.floor(spriteSize * 1.7);
+          }
+          content = spriteHTML(MONSTERS[monster.type].sprite, mSize);
           if (monster.elite) {
             content = '<span style="position:relative;display:inline-flex;vertical-align:middle;">' + content +
               '<span style="position:absolute;top:-5px;right:-6px;color:#ff4444;font-size:11px;font-weight:bold;text-shadow:0 0 4px #ff2222;">★</span></span>';
@@ -4428,12 +4474,13 @@ function renderMap() {
           for (var si = 0; si < G.specialRooms.length; si++) {
             var sr2 = G.specialRooms[si];
             if (sr2.x === x && sr2.y === y) {
+              var srFade = sr2.used ? 'opacity:0.3;' : '';
               if (sr2.type === 'sentry') {
-                content = '<span style="color:#44aaff;font-size:' + Math.floor(spriteSize * 0.8) + 'px;font-weight:bold;text-shadow:0 0 6px #44aaff;">◉</span>';
+                content = '<span style="' + srFade + 'color:#44aaff;font-size:' + Math.floor(spriteSize * 0.8) + 'px;font-weight:bold;text-shadow:0 0 6px #44aaff;">◉</span>';
               } else if (sr2.type === 'charger') {
-                content = '<span style="color:#ffdd44;font-size:' + Math.floor(spriteSize * 0.8) + 'px;font-weight:bold;text-shadow:0 0 6px #ffdd44;">⚡</span>';
+                content = '<span style="' + srFade + 'color:#ffdd44;font-size:' + Math.floor(spriteSize * 0.8) + 'px;font-weight:bold;text-shadow:0 0 6px #ffdd44;">⚡</span>';
               } else if (sr2.type === 'clone') {
-                content = '<span style="color:#cc66ff;font-size:' + Math.floor(spriteSize * 0.8) + 'px;font-weight:bold;text-shadow:0 0 6px #cc66ff;">◈</span>';
+                content = '<span style="' + srFade + 'color:#cc66ff;font-size:' + Math.floor(spriteSize * 0.8) + 'px;font-weight:bold;text-shadow:0 0 6px #cc66ff;">◈</span>';
               }
               break;
             }
@@ -5049,7 +5096,9 @@ function renderTarget() {
       var hpPct = (m.hp / m.maxHp) * 100;
       var d = Math.round(dist(G.player.x, G.player.y, m.x, m.y));
       html += '<div class="target-info">';
-      html += '<div class="t-name"' + (m.elite ? ' style="color:#ff6b6b;"' : '') + '><span style="display:inline-flex;vertical-align:middle;width:14px;height:14px;margin-right:2px;">' + spriteHTML(mData.sprite, 14) + '</span>' + m.name + ' <span style="color:#555;font-size:10px;">(' + d + '格)</span></div>';
+      var tSize = 14;
+      if (mData.boss) tSize = m.bigBoss ? 30 : 22;
+      html += '<div class="t-name"' + (m.elite ? ' style="color:#ff6b6b;"' : '') + '><span style="display:inline-flex;vertical-align:middle;width:' + tSize + 'px;height:' + tSize + 'px;margin-right:2px;">' + spriteHTML(mData.sprite, tSize) + '</span>' + m.name + ' <span style="color:#555;font-size:10px;">(' + d + '格)</span></div>';
       html += '<div class="t-stat">内存: ' + m.hp + '/' + m.maxHp + '</div>';
       html += '<div class="bar-container bar-hp" style="width:100%;"><span class="bar-fill" style="width:' + hpPct + '%; background:#aa3333;"></span></div>';
       html += '<div class="t-stat">攻击: ' + m.atk + '  防御: ' + m.def + '</div>';
@@ -5606,21 +5655,32 @@ function showAltarChoices() {
   var html = '';
   for (var i = 0; i < ALTAR_CHOICES.length; i++) {
     var c = ALTAR_CHOICES[i];
-    var costStr = '';
-    if (c.cost === 'hp20') costStr = '牺牲20%内存';
-    else if (c.cost === 'hp30') costStr = '牺牲30%内存';
-    else if (c.cost === 'gold50') costStr = '50 BTC';
-    else costStr = '免费';
-    html += '<div class="shop-item" style="border-color:#6a4a8a;" onclick="useAltar(' + i + ')">';
-    html += '<span style="color:#cc88ff;">' + c.name + '</span>';
-    html += '<span style="color:#888;font-size:10px;">' + c.desc + '</span>';
-    html += '<span style="color:#aa6644;font-size:10px;">[' + costStr + ']</span>';
+    // 拆分英文名和中文名
+    var sp = c.name.indexOf(' ');
+    var enName = sp > 0 ? c.name.substring(0, sp) : c.name;
+    var cnName = sp > 0 ? c.name.substring(sp + 1) : '';
+    // 右侧效果标签
+    var effectTag = '';
+    if (c.id === 'power')   effectTag = '【-20%内存, +2力量】';
+    else if (c.id === 'agility') effectTag = '【-20%内存, +2敏捷】';
+    else if (c.id === 'wisdom')  effectTag = '【-20%内存, +2智力】';
+    else if (c.id === 'gold')    effectTag = '【50 BTC, 全恢复】';
+    else if (c.id === 'gamble')  effectTag = '【-30%内存, 随机装备】';
+    else if (c.id === 'cleanse') effectTag = '【免费, 净化全部】';
+    html += '<div class="altar-choice" onclick="useAltar(' + i + ')">';
+    html += '<div class="ac-left">';
+    html += '<div class="ac-en">' + enName + '</div>';
+    if (cnName) html += '<div class="ac-cn">' + cnName + '</div>';
+    html += '</div>';
+    html += '<div class="ac-effect">' + effectTag + '</div>';
     html += '</div>';
   }
   html += '<div class="shop-item" style="border-color:#333;" onclick="closeAltar()">';
   html += '<span style="color:#555;">取消，不配置任务</span>';
   html += '</div>';
-  document.getElementById('altarBody').innerHTML = html;
+  var altarBodyEl = document.getElementById('altarBody');
+  if (!altarBodyEl) return;
+  altarBodyEl.innerHTML = html;
   altarSection.style.display = 'block';
   addMessage('发现一个空闲的 crontab 槽位！配置一个定时任务。', 'info');
 }
@@ -5654,8 +5714,9 @@ function useAltar(idx) {
 
 function closeAltar() {
   var altarSection = document.getElementById('altarSection');
-  altarSection.style.display = 'none';
-  altarSection.innerHTML = '';
+  if (altarSection) altarSection.style.display = 'none';
+  var altarBody = document.getElementById('altarBody');
+  if (altarBody) altarBody.innerHTML = '';
   render();
 }
 
@@ -6687,7 +6748,7 @@ function nextFloor() {
     var newStageDef = STAGES[G.stage - 1];
     addMessage('===== 进入关卡 ' + G.stage + '：' + newStageDef.name + ' =====', 'boss');
     addMessage('共 ' + newStageDef.floors + ' 层，每5层有特权进程，最终层有驻留Boss！', 'info');
-    showStageTitle(G.stage, newStageDef.name);
+    G._enteringStage = true; // 延迟到选路弹窗关闭、地图生成后再播开场动画(避免被弹窗遮挡)
   } else {
     G.floor++;
     var msg = '你下到了 ' + STAGES[G.stage - 1].name + ' 第 ' + G.floor + ' 层...';
@@ -6774,6 +6835,10 @@ function chooseRoute(id) {
   var r = ROUTES[id];
   addMessage('路由选择: 进入【' + r.name + '】 — ' + r.desc, 'info');
   generateMap(id);
+  if (G._enteringStage) {
+    showStageTitle(G.stage, STAGES[G.stage - 1].name);
+    G._enteringStage = false;
+  }
   finishFloorTransition();
 }
 
@@ -7781,13 +7846,16 @@ function showStageTitle(stage, name) {
   var ov = document.getElementById('stageTitleOverlay');
   ov.innerHTML = '';
   ov.className = '';
+  var isFinal = (stage === MAX_STAGE);
   // 方案A：全屏淡入淡出横幅
   ov.classList.add('show');
   var b = document.createElement('div');
   b.className = 'stage-banner';
-  b.innerHTML = '<div class="sb-stage">STAGE ' + stage + ' / 关卡 ' + stage + '</div>' +
+  var stageLine = isFinal ? ('STAGE ' + stage + ' / 最终关') : ('STAGE ' + stage + ' / 关卡 ' + stage);
+  var subLine = isFinal ? '— 最终关 —' : ('— 第 ' + stage + ' 关 —');
+  b.innerHTML = '<div class="sb-stage">' + stageLine + '</div>' +
                 '<div class="sb-name">' + name + '</div>' +
-                '<div class="sb-sub">— 第 ' + stage + ' 关 —</div>';
+                '<div class="sb-sub">' + subLine + '</div>';
   ov.appendChild(b);
   _stageTitleTimers.push(setTimeout(function () { ov.classList.remove('show'); ov.innerHTML = ''; }, 2400));
 }
