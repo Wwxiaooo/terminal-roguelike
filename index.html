@@ -536,6 +536,16 @@ body {
   line-height: 1.45;
 }
 .boss-term.active { display: flex; }
+.boss-hp-bar { position: fixed; top: 46px; left: 50%; transform: translateX(-50%);
+  width: 60%; max-width: 440px; z-index: 50; text-align: center;
+  font-family: 'Consolas', 'Courier New', monospace; pointer-events: none; }
+.boss-hp-bar.hidden { display: none; }
+.bhb-name { color: #ff44ff; font-size: 13px; letter-spacing: 1px; text-shadow: 0 0 6px #ff44ff; margin-bottom: 3px; }
+.bhb-track { width: 100%; height: 14px; border: 1px solid #ff44ff; background: rgba(0,0,0,0.55);
+  box-shadow: 0 0 8px rgba(255,68,255,0.5); border-radius: 2px; overflow: hidden; }
+.bhb-fill { height: 100%; width: 100%; background: linear-gradient(90deg,#ff2d2d,#ff7b00);
+  box-shadow: 0 0 10px #ff2d2d; transition: width 0.25s ease-out; }
+.bhb-text { color: #ff9bf0; font-size: 11px; margin-top: 2px; }
 .bt-titlebar {
   flex: 0 0 34px;
   background: #1f1f1f;
@@ -1113,6 +1123,12 @@ body {
     <div class="bt-inputline"><span class="bl-prompt" id="btPrompt">admin@prod-app-01:~/ops$ </span><span id="btTyped"></span><span class="bt-cursor"></span></div>
   </div>
 
+  <div id="bossHealthBar" class="boss-hp-bar hidden">
+    <div class="bhb-name" id="bhbName">BOSS</div>
+    <div class="bhb-track"><div class="bhb-fill" id="bhbFill"></div></div>
+    <div class="bhb-text" id="bhbText"></div>
+  </div>
+
   <div class="modal-overlay" id="gameOverModal">
     <div class="modal">
       <h2 class="gameover-title">系统错误 — 连接中断</h2>
@@ -1521,6 +1537,17 @@ const MONSTERS = {
   clone:        { name:'你的克隆体',             sprite:'clone',         hp:1,   atk:1,  def:1,  exp:0,   gold:0,   dropChance:0,   boss:false, ability:'none' },
 };
 
+// ===== 全局怪物难度系数 (调高血量与攻击力, 增加挑战) =====
+// 觉得还是太简单就调大这两个值; clone 为动态赋值, 跳过
+const MONSTER_HP_MULT = 1.35;
+const MONSTER_ATK_MULT = 1.25;
+const BOSS_HP_MULT = 1.3;  // Boss 额外血量倍率（让 Boss 更耐打，避免被秒）
+for (var _mk in MONSTERS) {
+  if (_mk === 'clone') continue;
+  if (MONSTERS[_mk].hp != null) MONSTERS[_mk].hp = Math.round(MONSTERS[_mk].hp * MONSTER_HP_MULT);
+  if (MONSTERS[_mk].atk != null) MONSTERS[_mk].atk = Math.round(MONSTERS[_mk].atk * MONSTER_ATK_MULT);
+}
+
 function getMonsterTypesForFloor(stage, floor) {
   var stageDef = STAGES[stage - 1];
   var types = stageDef.monsters.slice();
@@ -1573,7 +1600,6 @@ const EXTRA_ATTRS = [
   { key:'critDmg',   label:'暴击伤害', fmt:'%',  max:50 },
   { key:'dodge',     label:'闪避',     fmt:'%',  max:20 },
   { key:'lifesteal', label:'吸血',     fmt:'%',  max:15 },
-  { key:'hpRegen',   label:'内存回复', fmt:'/t', max:5 },
   { key:'mpRegen',   label:'带宽回复', fmt:'/t', max:3 },
   { key:'maxHp',     label:'内存上限', fmt:'',   max:30 },
   { key:'maxMp',     label:'带宽上限', fmt:'',   max:15 },
@@ -1594,7 +1620,6 @@ const AFFIXES = [
   { id:'lucky',    name:'缓存命中', desc:'掉落率+15%',        effect:{luck:15} },
   { id:'arcane',   name:'QoS加速',  desc:'带宽上限+20',       effect:{maxMp:20} },
   { id:'vital',    name:'内存扩容', desc:'内存上限+25',       effect:{maxHp:25} },
-  { id:'regen',    name:'自愈守护', desc:'每回合回3HP',       effect:{hpRegen:3} },
   // ===== 扩展词缀 (与神器/天赋形成组合流派) =====
   { id:'frenzy',   name:'高并发',   desc:'攻击速度+20%',        effect:{atkSpd:20} },
   { id:'thornmail',name:'反制链',   desc:'反伤+8',             effect:{thorns:8} },
@@ -3254,17 +3279,20 @@ function addMessage(text, type) {
 
 function getTotalAtk() {
   var atk = G.player.atk;
+  // 收集所有攻击加成词条, 统一加性乘算, 避免逐件装备复利放大(装备越多越爆炸)
+  var atkMultSum = 0;
   for (var slot in G.player.equips) {
     var e = G.player.equips[slot];
     if (e) {
       atk += e.atk;
-      if (e.affixData && e.affixData.effect.atkMult) atk += Math.floor(atk * e.affixData.effect.atkMult);
+      if (e.affixData && e.affixData.effect.atkMult) atkMultSum += e.affixData.effect.atkMult;
     }
   }
   // 力量加成: 每点STR +1 近战攻击力
   atk += G.player.str;
   // 天赋: 超频
   atk += tl('might'); // 天赋: 超频
+  if (atkMultSum > 0) atk = Math.floor(atk * (1 + atkMultSum));
   // 临时buff: 攻击强化
   if (G.player.buffs) {
     for (var i = 0; i < G.player.buffs.length; i++) {
@@ -3806,10 +3834,10 @@ function generateMap(routeType) {
     // Boss层: 放1只Boss
     var bossType = bigBoss ? stageDef.bigBoss : stageDef.miniBoss;
     var bossBase = MONSTERS[bossType];
-    var stageMult = 1 + (stage - 1) * 0.4;
-    var bossHp = Math.floor(bossBase.hp * stageMult) + Math.floor(diff * 3.5);
+    var stageMult = 1 + (stage - 1) * 0.65;
+    var bossHp = Math.floor(bossBase.hp * stageMult * BOSS_HP_MULT) + Math.floor(diff * 4.5);
     var bossAtk = bossBase.atk + Math.floor(diff * 2.0);
-    var bossDef = bossBase.def + Math.floor(diff * 0.8);
+    var bossDef = Math.round((bossBase.def + Math.floor(diff * 1.2)) * (1 + (stage - 1) * 0.35));
     G.monsters.push({
       x: rooms[0].x + rooms[0].w - 3, y: rooms[0].cy,
       type: bossType,
@@ -3845,9 +3873,9 @@ function generateMap(routeType) {
         x: mx, y: my,
         type: typeName,
         name: base.name,
-        hp: base.hp + hpBonus,
-        maxHp: base.hp + hpBonus,
-        atk: base.atk + Math.floor(diff * 2.2),
+        hp: Math.round(base.hp * (1 + (stage - 1) * 0.15)) + hpBonus,
+        maxHp: Math.round(base.hp * (1 + (stage - 1) * 0.15)) + hpBonus,
+        atk: Math.round(base.atk * (1 + (stage - 1) * 0.15)) + Math.floor(diff * 2.2),
         def: base.def + Math.floor(diff * 0.8),
         exp: Math.floor((base.exp + Math.floor(diff * 0.4)) * rt.expGoldMul),
         gold: Math.floor((base.gold + Math.floor(diff * 0.5)) * rt.expGoldMul),
@@ -4041,6 +4069,7 @@ function render() {
   renderTarget();
   renderMessages();
   renderFloorInfo();
+  updateBossBar();
 }
 
 // 祭坛面板: 玩家不在祭坛格上(或已使用/无祭坛)时自动隐藏, 仿照商人面板的距离检查
@@ -4080,6 +4109,23 @@ function renderFloorInfo() {
     el.classList.remove('alert');
   }
   el.textContent = text;
+}
+
+// Boss 层：屏幕中上方血条（显示 Boss 名称 + 血量），Boss 死亡自动隐藏
+function updateBossBar() {
+  var bar = document.getElementById('bossHealthBar');
+  if (!bar) return;
+  var boss = null;
+  for (var i = 0; i < G.monsters.length; i++) {
+    var m = G.monsters[i];
+    if (MONSTERS[m.type] && MONSTERS[m.type].boss && m.hp > 0) { boss = m; break; }
+  }
+  if (!isBossFloor(G.stage, G.floor) || !boss) { bar.classList.add('hidden'); return; }
+  bar.classList.remove('hidden');
+  document.getElementById('bhbName').textContent = boss.name;
+  var pct = Math.max(0, Math.min(100, (boss.hp / boss.maxHp) * 100));
+  document.getElementById('bhbFill').style.width = pct + '%';
+  document.getElementById('bhbText').textContent = Math.max(0, Math.ceil(boss.hp)) + ' / ' + boss.maxHp;
 }
 
 function renderMap() {
@@ -5215,8 +5261,8 @@ function applyMysteryEvent(type, isBoon) {
       addMessage(e.name + ' 重新编译为 Lv.' + e.level + '!', 'levelup');
       return { title: '机遇 — 重新编译 -O2', body: '编译器对你的装备执行了 -O2 优化！<br><span style="color:#ffcc00;">' + e.name + ' 提升至 Lv.' + e.level + '</span><br><span style="color:#00ff41;">攻击/防御提升</span>' };
     } else {
-      var attrs = ['critRate', 'critDmg', 'dodge', 'lifesteal', 'hpRegen', 'mpRegen', 'maxHp', 'maxMp', 'thorns', 'spd', 'atkSpd'];
-      var attrLabels = { critRate:'暴击率', critDmg:'暴击伤害', dodge:'闪避', lifesteal:'吸血', hpRegen:'内存回复', mpRegen:'带宽回复', maxHp:'内存上限', maxMp:'带宽上限', thorns:'反伤', spd:'移动速度', atkSpd:'攻击速度' };
+      var attrs = ['critRate', 'critDmg', 'dodge', 'lifesteal', 'mpRegen', 'maxHp', 'maxMp', 'thorns', 'spd', 'atkSpd'];
+      var attrLabels = { critRate:'暴击率', critDmg:'暴击伤害', dodge:'闪避', lifesteal:'吸血', mpRegen:'带宽回复', maxHp:'内存上限', maxMp:'带宽上限', thorns:'反伤', spd:'移动速度', atkSpd:'攻击速度' };
       var attrSuffix = { critRate:'%', critDmg:'%', dodge:'%', lifesteal:'%' };
       var available = attrs.filter(function(a) { return true; });
       var pickedAttr = rndChoice(available);
